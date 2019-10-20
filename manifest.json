@@ -1,7 +1,7 @@
 {
     "name": "RoRCheats",
-    "version_number": "2.3.0",
-    "website_url": "",
+    "version_number": "2.3.1",
+    "website_url": "https://github.com/lodsharpshooter/RoRCheats",
     "description": "Risk of Rain 2 cheat menu!!",
     "dependencies": [
         "tristanmcpherson-R2API-2.2.32"

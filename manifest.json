@@ -1,0 +1,9 @@
+{
+    "name": "RoRCheats",
+    "version_number": "2.3.0",
+    "website_url": "",
+    "description": "Risk of Rain 2 cheat menu!!",
+    "dependencies": [
+        "tristanmcpherson-R2API-2.2.32"
+    ]
+}

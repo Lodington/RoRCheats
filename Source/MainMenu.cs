@@ -5,24 +5,25 @@ using System.Linq;
 using RoR2;
 using BepInEx;
 using R2API.Utils;
+using BepInEx.Configuration;
 
 namespace RoRCheats
 {
 
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Lodington.RoR2Cheats", "RoR2Cheats", "2.4.1")]
+    [BepInPlugin("com.Lodington.RoR2Cheats", "RoR2Cheats", "2.4.2")]
 
-    public class Main : BaseUnityPlugin
+    public class MainMenu : BaseUnityPlugin
     {
-        private static String _VERSION = "v 2.4.1";
+        private static String _VERSION = "v 2.4.2";
 
-        private static RoR2.CharacterMaster LocalPlayer;
-        private static RoR2.Inventory LocalPlayerInv;
-        private static RoR2.HealthComponent LocalHealth;
-        private static RoR2.SkillLocator LocalSkills;
-        private static RoR2.NetworkUser LocalNetworkUser;
-        private static RoR2.CharacterBody Localbody;
-        private static RoR2.CharacterMotor LocalMotor;
+        private static CharacterMaster LocalPlayer;
+        private static Inventory LocalPlayerInv;
+        private static HealthComponent LocalHealth;
+        private static SkillLocator LocalSkills;
+        private static NetworkUser LocalNetworkUser;
+        private static CharacterBody Localbody;
+        private static CharacterMotor LocalMotor;
 
         private static bool _isMenuOpen = false;
         private static bool _ifDragged = false;
@@ -52,6 +53,11 @@ namespace RoRCheats
         public static uint moneyToGive = 100;
         public static uint coinsToGive = 10;
         public static int btnY, mulY;
+
+        public static ConfigWrapper<string> OpenMenuKey;
+        public static ConfigWrapper<string> GiveMoneyKey;
+        public static ConfigWrapper<string> OpenTeleMenu;
+        public static ConfigWrapper<string> ToggleNoclip;
 
         Dictionary<string, int> nameToIndexMap = new Dictionary<string, int>();
         static Int32 Margin = 5;
@@ -94,28 +100,32 @@ namespace RoRCheats
                 CharacterWindow = GUILayout.Window(CharacterSelectId, CharacterWindow, CharacterWindowMethod, "Character Select");
             }
         }
+
         public void Awake()
         {
-            nameToIndexMap = typeof(BodyCatalog).GetFieldValue<Dictionary<string, int>>("nameToIndexMap");
-            CharacterSelectId = GetHashCode();
-            ItemSelectorId = GetHashCode();
+            OpenMenuKey = Config.Wrap("Main Menu", "Main Menu Keybind", "Default Key to open menu is insert", "Insert");
+            GiveMoneyKey = Config.Wrap("Give Money", "Give money Keybind", "Default Key to give money is V", "V");
+            OpenTeleMenu = Config.Wrap("Teleporter Menu", "Open teleporter Keybind", "Default Key to open the Teleporter menu is B", "B");
+            ToggleNoclip = Config.Wrap("No Clip Toggle", "Toggle No Clip Keybind", "Default Key to toggle Noclip is C", "C");
 
             //Here we are subscribing to the SurvivorCatalogReady event, which is run when the subscriber catalog can be modified.
             //We insert Bandit as a new character here, which is then automatically added to the internal game catalog and reconstructed.
-            /* R2API.SurvivorAPI.SurvivorCatalogReady += (s, e) =>
-             {
-                 var survivor = new SurvivorDef
-                 {
-                     bodyPrefab = BodyCatalog.FindBodyPrefab("BanditBody"),
-                     descriptionToken = "BANDIT_DESCRIPTION",
-                     displayPrefab = Resources.Load<GameObject>("Prefabs/Characters/BanditDisplay"),
-                     primaryColor = new Color(0.8039216f, 0.482352942f, 0.843137264f),
-                     unlockableName = "Bandit"
-                 };
+            /*R2API.SurvivorAPI.SurvivorCatalogReady += (s, e) =>
+            {
+                var survivor = new SurvivorDef
+                {
+                    bodyPrefab = BodyCatalog.FindBodyPrefab("BanditBody"),
+                    descriptionToken = "BANDIT_DESCRIPTION",
+                    displayPrefab = Resources.Load<GameObject>("Prefabs/Characters/BanditDisplay"),
+                    primaryColor = new Color(0.8039216f, 0.482352942f, 0.843137264f),
+                    unlockableName = "Bandit"
+                };
 
-                 R2API.SurvivorAPI.AddSurvivorOnReady(survivor);
-                 Debug.Log("Loaded Bandit");
-             };*/
+                R2API.SurvivorAPI.AddSurvivorOnReady(survivor);
+            };*/
+            nameToIndexMap = typeof(BodyCatalog).GetFieldValue<Dictionary<string, int>>("nameToIndexMap");
+            CharacterSelectId = GetHashCode();
+            ItemSelectorId = GetHashCode();          
         }
 
         public void Start()
@@ -232,33 +242,32 @@ namespace RoRCheats
             {
                 Cursor.visible = false;
             }
-            if (Input.GetKeyDown(KeyCode.Insert))
+            if (InputManager.GetKeyDown("OpenMenu"))
             {
                 _isMenuOpen = !_isMenuOpen;
-                Debug.Log("Menu toggled");
                 GetCharacter();
             }
-            if (Input.GetKeyDown(KeyCode.V))
+            if (InputManager.GetKeyDown("GiveMoney"))
             {
                 GiveMoney();
-                Debug.Log("V Key Pressed");
             }
-            if (MouseToggle)
+            if(InputManager.GetKeyDown("OpenTeleMenu"))
             {
-                if (Input.GetKeyDown(KeyCode.Mouse4))
-                {
-                    _isMenuOpen = !_isMenuOpen;
-                    Debug.Log("Menu toggled");
-                    GetCharacter();
-                }
+                _isTeleMenuOpen = !_isTeleMenuOpen;
             }
+            if(InputManager.GetKeyDown("ToggleNoClip"))
+            {
+                NoclipToggle = !NoclipToggle;
+            }
+
+
         }
 
 
         private void NoClipRoutine()
         {
             if (_CharacterCollected) { 
-                if (NoclipToggle)
+                if (NoclipToggle) //checks 
                 {
                     LocalMotor.isFlying = false;
                     LocalMotor.useGravity = false;
@@ -327,7 +336,6 @@ namespace RoRCheats
                 if (!_ifDragged)
                 {
                     _isMenuOpen = !_isMenuOpen;
-                    _isStatMenuOpen = !_isStatMenuOpen;
                 }
                 _ifDragged = false;
             }
@@ -374,35 +382,9 @@ namespace RoRCheats
 
         public static void DrawMenu()
         {
-            int AmountOfButtons = 16;
+            int AmountOfButtons = 15;
             GUI.Box(new Rect(mainRect.x + 0f, mainRect.y + 0f, widthSize + 10, 50f + 45 * AmountOfButtons), "", MainBgStyle);
             GUI.Label(new Rect(mainRect.x + 5f, mainRect.y + 5f, widthSize + 5, 95f), "RoRCheat Menu\n" + _VERSION, LabelStyle);
-           if(!_CharacterCollected)
-            {
-                if (_CharacterToggle)
-                {
-                    if (GUI.Button(BtnRect(1, "full"), "Character Selection: ON", OnStyle))
-                    {
-                        _CharacterToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(1, "full"), "Character Selection: OFF", OffStyle))
-                {
-                    _CharacterToggle = true;
-                }
-                if (MouseToggle)
-                {
-                    if (GUI.Button(BtnRect(2, "full"), "Mouse 4 button Toggle : ON", OnStyle))
-                    {
-                        MouseToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(2, "full"), "Mouse 4 button Toggle : OFF", OffStyle))
-                {
-                    MouseToggle = true;
-                }
-            }
-
 
             if (_CharacterCollected)
             {
@@ -494,21 +476,12 @@ namespace RoRCheats
                         NoclipToggle = false;
                     }
                 }
-                else if (GUI.Button(BtnRect(8, "full"), "Noclip: ON", OffStyle))
+                else if (GUI.Button(BtnRect(8, "full"), "Noclip: Off", OffStyle))
                 {
                     NoclipToggle = true;
                 }
-                if (MouseToggle)
-                {
-                    if (GUI.Button(BtnRect(9, "full"), "Mouse 4 button Toggle : ON", OnStyle)) {
-                        MouseToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(9, "full"), "Mouse 4 button Toggle : OFF", OffStyle)) {
-                    MouseToggle = true;
-                }
 
-                if (GUI.Button(BtnRect(10, "multiply"), "Give Money: " + moneyToGive.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(9, "multiply"), "Give Money: " + moneyToGive.ToString(), BtnStyle))
                 {
                     GiveMoney();
                 }
@@ -522,7 +495,7 @@ namespace RoRCheats
                     if (moneyToGive >= 100)
                         moneyToGive += 100;
                 }
-                if (GUI.Button(BtnRect(11, "multiply"), "Give Lunar Coins: " + coinsToGive.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(10, "multiply"), "Give Lunar Coins: " + coinsToGive.ToString(), BtnStyle))
                 {
                     GiveLunarCoins();
                 }
@@ -536,7 +509,7 @@ namespace RoRCheats
                     if (coinsToGive >= 10)
                         coinsToGive += 10;
                 }
-                if (GUI.Button(BtnRect(12, "multiply"), "Give Experience: " + xpToGive.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(11, "multiply"), "Give Experience: " + xpToGive.ToString(), BtnStyle))
                 {
                     giveXP();
                 }
@@ -550,7 +523,7 @@ namespace RoRCheats
                     if (xpToGive >= 100)
                         xpToGive += 100;
                 }
-                if (GUI.Button(BtnRect(13, "multiply"), "Roll Items: " + itemsToRoll.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(12, "multiply"), "Roll Items: " + itemsToRoll.ToString(), BtnStyle))
                 {
                     RollItems(itemsToRoll.ToString());
                 }
@@ -578,14 +551,14 @@ namespace RoRCheats
                      if (allItemsQuantity >= 1)
                          allItemsQuantity += 1;
                 }*/
-                if (damageToggle)
+            if (damageToggle)
                 {
-                    if (GUI.Button(BtnRect(14, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OnStyle))
+                    if (GUI.Button(BtnRect(13, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OnStyle))
                     {
                         damageToggle = false;
                     }
                 }
-                else if (GUI.Button(BtnRect(14, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OffStyle))
+                else if (GUI.Button(BtnRect(13, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OffStyle))
                 {
                     damageToggle = true;
                 }
@@ -601,12 +574,12 @@ namespace RoRCheats
                 }
                 if (critToggle)
                 {
-                    if (GUI.Button(BtnRect(15, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OnStyle))
+                    if (GUI.Button(BtnRect(14, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OnStyle))
                     {
                         critToggle = false; 
                     }
                 }
-                else if (GUI.Button(BtnRect(15, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OffStyle))
+                else if (GUI.Button(BtnRect(14, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OffStyle))
                 {
                     critToggle = true;
                 }
@@ -621,7 +594,7 @@ namespace RoRCheats
                         CritPerLvl += 1;
                 }
 
-                if (GUI.Button(BtnRect(16 , "full"), "Skip Stage", BtnStyle))
+                if (GUI.Button(BtnRect(15 , "full"), "Skip Stage", BtnStyle))
                     skipStage();
 
             }
@@ -885,7 +858,7 @@ namespace RoRCheats
                         master.bodyPrefab = newBody;
                         master.Respawn(master.GetBody().transform.position, master.GetBody().transform.rotation);
                         enabled = false;
-                        DrawMenu();
+                        //DrawMenu();
                         return;
 
                     }
@@ -1017,6 +990,7 @@ namespace RoRCheats
         private static void GiveMoney()
         {
             LocalPlayer.GiveMoney(moneyToGive);
+            Debug.Log("Giving " + moneyToGive + " to the player");
         }
         //uh, duh.
         private static void GiveLunarCoins()

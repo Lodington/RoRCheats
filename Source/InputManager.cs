@@ -44,12 +44,12 @@ namespace RoRCheats
             bool isValid = Enum.TryParse<KeyCode>(Keybind, true ,out KeyCode key);
             if (isValid)
             {
-                Debug.LogWarning(key);
+                Debug.LogWarning("RoRCheats: Registered Key : " + key);
                 return key;
             }
             else if (!isValid)
             {
-                Debug.LogError("Invalid Keybind in Config File");
+                Debug.LogError("RoRCheats: Invalid Keybind in Config File");
                 return key;
             }
             return key;
@@ -67,19 +67,19 @@ namespace RoRCheats
                 {
                     if (CustomKeybinds[i] == KeyCode.None)
                     {
-                        Debug.Log("Loaded Default Keybinds");
+                        Debug.Log("RoRCheats: Loaded Default Keybinds");
                         return DefaultKeybinds;
                     }
                 }
-                Debug.Log("Loaded Keybinds From Config File");
+                Debug.Log("RoRCheats: Loaded Keybinds From Config File");
                 return CustomKeybinds;
             } 
             else if(isEqual)
             {
-                Debug.Log("Loaded Default Keybinds");
+                Debug.Log("RoRCheats: Loaded Default Keybinds");
                 return DefaultKeybinds;
             }
-            Debug.LogError("Something Went Wrong Loading Default Keybinds");
+            Debug.LogError("RoRCheats: Something Went Wrong...Loading Default Keybinds");
             return DefaultKeybinds;
         }
         private static void InitializeDictionary(KeyCode[] Keybinds)
@@ -94,7 +94,7 @@ namespace RoRCheats
         public static void SetKeyMap(string keyMap, KeyCode key)
         {
             if (!keyMapping.ContainsKey(keyMap))
-                Debug.LogError("Invalid KeyMap in SetKeyMap: " + keyMap);
+                Debug.LogError("RoRCheats: Invalid KeyMap in SetKeyMap: " + keyMap);
             keyMapping[keyMap] = key;
         }
 

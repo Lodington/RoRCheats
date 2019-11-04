@@ -6,16 +6,17 @@ using RoR2;
 using BepInEx;
 using R2API.Utils;
 using BepInEx.Configuration;
+using System.Text;
 
 namespace RoRCheats
 {
 
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Lodington.RoR2Cheats", "RoR2Cheats", "2.4.2")]
+    [BepInPlugin("com.Lodington.RoRCheats", "RoRCheats", "2.4.4")]
 
     public class MainMenu : BaseUnityPlugin
     {
-        private static String _VERSION = "v 2.4.2";
+        private static String _VERSION = "v 2.4.4";
 
         private static CharacterMaster LocalPlayer;
         private static Inventory LocalPlayerInv;
@@ -32,6 +33,7 @@ namespace RoRCheats
         private static bool _isTeleMenuOpen = false;
         private static bool _ItemToggle = false;
         private static bool _CharacterToggle = false;
+        private static bool _isLobbyMenuOpen = false;
 
         public static GUIStyle MainBgStyle, StatBgSytle, TeleBgStyle, OnStyle, OffStyle, LabelStyle, BtnStyle, CornerStyle, DisplayStyle; //make new BgStyle for stats menu 
         public static GUIStyle BtnStyle1, BtnStyle2, BtnStyle3;
@@ -41,6 +43,7 @@ namespace RoRCheats
         public static Rect mainRect = new Rect(10, 10, 20, 20); //start position
         public static Rect statRect = new Rect(427, 200, 20, 20); //start position
         public static Rect teleRect = new Rect(10, 736, 20, 20); //start position
+        public static Rect lobbyRect = new Rect(427, 434, 20, 20); //start position
 
         public static Texture2D Image = null, ontexture, onpresstexture, offtexture, offpresstexture, cornertexture, backtexture, btntexture, btnpresstexture, btntexturelabel;
         public static Texture2D NewTexture2D { get { return new Texture2D(1, 1); } }
@@ -69,13 +72,14 @@ namespace RoRCheats
         Rect CharacterWindow = new Rect(Screen.width - CharacterWidth - Margin, Margin, CharacterWidth, Screen.height - (Margin * 2));
         Rect ItemSelectorWindow = new Rect(Screen.width - ItemWidth - Margin, Margin, ItemWidth, Screen.height - (Margin * 2));
 
+        static string[] Players = new string[4];
+
         private void OnGUI()
         {
             mainRect = GUI.Window(0, mainRect, new GUI.WindowFunction(SetBG), "", new GUIStyle());
             if (_isMenuOpen)
             {
                 DrawMenu();
-
             }
             if (_isStatMenuOpen)
             {
@@ -86,6 +90,11 @@ namespace RoRCheats
             {
                 teleRect = GUI.Window(2, teleRect, new GUI.WindowFunction(SetBG), "", new GUIStyle());
                 DrawTeleMenu();
+            }
+            if (_isLobbyMenuOpen)
+            {
+                lobbyRect = GUI.Window(3, lobbyRect, new GUI.WindowFunction(SetBG), "", new GUIStyle());
+                DrawManagmentMenu();
             }
             if (_CharacterCollected)
             {
@@ -317,7 +326,7 @@ namespace RoRCheats
                 }            
             }
         }
-      
+        
 
         public static void SetBG(int windowID)
         {
@@ -342,23 +351,53 @@ namespace RoRCheats
             GUI.DragWindow();
         }
 
-        public static void DrawTeleMenu()
+        public static void DrawManagmentMenu()
         {
             int AmountOfButtons = 4;
+            GUI.Box(new Rect(lobbyRect.x + 0f, lobbyRect.y + 0f, widthSize + 10, 50f + 45 * AmountOfButtons), "", MainBgStyle);
+            GUI.Label(new Rect(lobbyRect.x + 5f, lobbyRect.y + 5f, widthSize + 5, 95f), "Lobby Management Menu", LabelStyle);
+            Debug.LogError("x " + lobbyRect.x + " y " + lobbyRect.y);
+            if (_CharacterCollected)
+            {
+                GetPlayers(Players);
+                int buttonPlacement = 1;
+                for(int i = 0; i < Players.Length; i++)
+                {
+                    try
+                    {
+                        if (GUI.Button(BtnRect(buttonPlacement, "lobby"), "Kick " + Players[i], BtnStyle))
+                        {
+                            Chat.AddMessage("<color=#42f5d4>Kicked Player </color>" + "<color=yellow>" + Players[i] + "</color>");
+                            GetPlayers(Players);
+                            kickPlayer(GetNetUserFromString(Players[i]));
+                        }
+                        buttonPlacement++;
+                    } catch (NullReferenceException)
+                    {
+                        Debug.LogWarning("RoRCheats: There is No Player Selected");
+                    }
+                }
+            }
+        }
+
+        public static void DrawTeleMenu()
+        {
+            int AmountOfButtons = 5;
             GUI.Box(new Rect(teleRect.x + 0f, teleRect.y + 0f, widthSize + 10, 50f + 45 * AmountOfButtons), "", MainBgStyle);
             GUI.Label(new Rect(teleRect.x + 5f, teleRect.y + 5f, widthSize + 5, 95f), "Teleporter Menu", LabelStyle);
 
             if (_CharacterCollected)
             {
-                if (GUI.Button(BtnRect(1, "tele"), "Spawn Gold Portal", BtnStyle))
+                if (GUI.Button(BtnRect(1, "tele"), "Skip Stage", BtnStyle))
+                    skipStage();
+                if (GUI.Button(BtnRect(2, "tele"), "Spawn Gold Portal", BtnStyle))
                     SpawnPortals("gold");
-                if (GUI.Button(BtnRect(2, "tele"), "Spawn Blue Portal", BtnStyle))
+                if (GUI.Button(BtnRect(3, "tele"), "Spawn Blue Portal", BtnStyle))
                     SpawnPortals("newt");
-                if (GUI.Button(BtnRect(3, "tele"), "Spawn Celestal Portal", BtnStyle))
+                if (GUI.Button(BtnRect(4, "tele"), "Spawn Celestal Portal", BtnStyle))
                     SpawnPortals("blue");
-                if (GUI.Button(BtnRect(4, "tele"), "Spawn All Portals", BtnStyle))
+                if (GUI.Button(BtnRect(5, "tele"), "Spawn All Portals", BtnStyle))
                     SpawnPortals("all");
-                
             }
             else
             {
@@ -386,9 +425,14 @@ namespace RoRCheats
             GUI.Box(new Rect(mainRect.x + 0f, mainRect.y + 0f, widthSize + 10, 50f + 45 * AmountOfButtons), "", MainBgStyle);
             GUI.Label(new Rect(mainRect.x + 5f, mainRect.y + 5f, widthSize + 5, 95f), "RoRCheat Menu\n" + _VERSION, LabelStyle);
 
+            if(!_CharacterCollected)
+            {
+                GUI.Button(BtnRect(1, "full"), "<color=yellow>Please Note buttons will be availble in game.</color>", LabelStyle);
+                GUI.Button(BtnRect(14, "full"), "<color=yellow>Created By Lodington#9215.\n Feel Free to Message me on discord \n with Bug Reports or suggestions.</color>", LabelStyle);
+            }
+
             if (_CharacterCollected)
             {
-               
                 // we dont have a god toggle bool, because we can just ref localhealth
                 if (LocalHealth.godMode)
                 {
@@ -469,19 +513,30 @@ namespace RoRCheats
                 {
                     _isTeleMenuOpen = true;
                 }
-                if(NoclipToggle)
+                if(_isLobbyMenuOpen)
                 {
-                    if (GUI.Button(BtnRect(8, "full"), "Noclip: ON", OnStyle))
+                    if (GUI.Button(BtnRect(8, "full"), "Lobby Managment: ON", OnStyle))
+                    {
+                        _isLobbyMenuOpen = false;
+                    }
+                }
+                else if (GUI.Button(BtnRect(8, "full"), "Lobby Managment: OFF", OffStyle))
+                {
+                    _isLobbyMenuOpen = true;
+                }
+                if (NoclipToggle)
+                {
+                    if (GUI.Button(BtnRect(9, "full"), "Noclip: ON", OnStyle))
                     {
                         NoclipToggle = false;
                     }
                 }
-                else if (GUI.Button(BtnRect(8, "full"), "Noclip: Off", OffStyle))
+                else if (GUI.Button(BtnRect(9, "full"), "Noclip: Off", OffStyle))
                 {
                     NoclipToggle = true;
                 }
 
-                if (GUI.Button(BtnRect(9, "multiply"), "Give Money: " + moneyToGive.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(10, "multiply"), "Give Money: " + moneyToGive.ToString(), BtnStyle))
                 {
                     GiveMoney();
                 }
@@ -495,7 +550,7 @@ namespace RoRCheats
                     if (moneyToGive >= 100)
                         moneyToGive += 100;
                 }
-                if (GUI.Button(BtnRect(10, "multiply"), "Give Lunar Coins: " + coinsToGive.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(11, "multiply"), "Give Lunar Coins: " + coinsToGive.ToString(), BtnStyle))
                 {
                     GiveLunarCoins();
                 }
@@ -509,7 +564,7 @@ namespace RoRCheats
                     if (coinsToGive >= 10)
                         coinsToGive += 10;
                 }
-                if (GUI.Button(BtnRect(11, "multiply"), "Give Experience: " + xpToGive.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(12, "multiply"), "Give Experience: " + xpToGive.ToString(), BtnStyle))
                 {
                     giveXP();
                 }
@@ -523,7 +578,7 @@ namespace RoRCheats
                     if (xpToGive >= 100)
                         xpToGive += 100;
                 }
-                if (GUI.Button(BtnRect(12, "multiply"), "Roll Items: " + itemsToRoll.ToString(), BtnStyle))
+                if (GUI.Button(BtnRect(13, "multiply"), "Roll Items: " + itemsToRoll.ToString(), BtnStyle))
                 {
                     RollItems(itemsToRoll.ToString());
                 }
@@ -553,12 +608,12 @@ namespace RoRCheats
                 }*/
             if (damageToggle)
                 {
-                    if (GUI.Button(BtnRect(13, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OnStyle))
+                    if (GUI.Button(BtnRect(14, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OnStyle))
                     {
                         damageToggle = false;
                     }
                 }
-                else if (GUI.Button(BtnRect(13, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OffStyle))
+                else if (GUI.Button(BtnRect(14, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OffStyle))
                 {
                     damageToggle = true;
                 }
@@ -574,12 +629,12 @@ namespace RoRCheats
                 }
                 if (critToggle)
                 {
-                    if (GUI.Button(BtnRect(14, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OnStyle))
+                    if (GUI.Button(BtnRect(15, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OnStyle))
                     {
                         critToggle = false; 
                     }
                 }
-                else if (GUI.Button(BtnRect(14, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OffStyle))
+                else if (GUI.Button(BtnRect(15, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OffStyle))
                 {
                     critToggle = true;
                 }
@@ -593,15 +648,6 @@ namespace RoRCheats
                     if (CritPerLvl >= 0)
                         CritPerLvl += 1;
                 }
-
-                if (GUI.Button(BtnRect(15 , "full"), "Skip Stage", BtnStyle))
-                    skipStage();
-
-            }
-            else
-            {
-                GUI.Box(new Rect(mainRect.x, mainRect.y + 95f * mulY, widthSize + 10, 50f), "", MainBgStyle);
-                GUI.Label(new Rect(mainRect.x, mainRect.y + 95f * mulY, widthSize + 10, 50f), "<color=yellow>Note: Buttons Will Appear in Match Only</color>", LabelStyle);
             }
         }
 
@@ -623,6 +669,10 @@ namespace RoRCheats
             else if (buttonType.Equals("tele"))
             {
                 return new Rect(teleRect.x + 5, teleRect.y + 5 + 45 * y, widthSize, 40);
+            }
+            else if (buttonType.Equals("lobby"))
+            {
+                return new Rect(lobbyRect.x + 5, lobbyRect.y + 5 + 45 * y, widthSize, 40);
             }
             else if (buttonType.Equals("full"))
             {
@@ -788,6 +838,55 @@ namespace RoRCheats
             {
             }
         }
+
+        //Debugtoolkit team
+        private static NetworkUser GetNetUserFromString(string playerString)
+        {
+            if (playerString != "")
+            {
+                if (int.TryParse(playerString, out int result))
+                {
+                    if (result < NetworkUser.readOnlyInstancesList.Count && result >= 0)
+                    {
+                        return NetworkUser.readOnlyInstancesList[result];
+                    }
+                    return null;
+                }
+                else
+                {
+                    foreach (NetworkUser n in NetworkUser.readOnlyInstancesList)
+                    {
+                        if (n.userName.Equals(playerString, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            return n;
+                        }
+                    }
+                    return null;
+                }
+            }
+            return null;
+        }
+        public static void GetPlayers(string[] Players)
+        {
+            NetworkUser n;
+            for (int i = 0; i < NetworkUser.readOnlyInstancesList.Count; i++)
+            {
+                n = NetworkUser.readOnlyInstancesList[i];
+                
+                Players[i] = n.userName;
+            }
+        }
+
+        public static void kickPlayer(NetworkUser PlayerName)
+        {
+            RoR2.Console.instance.RunClientCmd(LocalNetworkUser,"kick_steam", new string[] { PlayerName.Network_id.steamId.ToString() });
+        }
+
+        public static void banPlayer(NetworkUser PlayerName)
+        {
+            RoR2.Console.instance.RunClientCmd(LocalNetworkUser, "ban_steam", new string[] { PlayerName.Network_id.steamId.ToString() });
+        }
+
         public static void skipStage()
         {
             Run.instance.AdvanceStage(Run.instance.nextStageScene);
@@ -990,7 +1089,7 @@ namespace RoRCheats
         private static void GiveMoney()
         {
             LocalPlayer.GiveMoney(moneyToGive);
-            Debug.Log("Giving " + moneyToGive + " to the player");
+            Debug.Log("RoRCheats: Giving " + moneyToGive + " to the player");
         }
         //uh, duh.
         private static void GiveLunarCoins()
@@ -1017,16 +1116,14 @@ namespace RoRCheats
             {
                 if(purchaseInteraction.available)
                 {
-                    float distanceToObject = Vector3.Distance(Camera.main.transform.position, purchaseInteraction.transform.position);
                     Vector3 Position = Camera.main.WorldToScreenPoint(purchaseInteraction.transform.position);
                     var BoundingVector = new Vector3(Position.x, Position.y, Position.z);
                     if (BoundingVector.z > 0.01)
                     {
                         GUI.color = Color.green;
-                        int distance = (int)distanceToObject;
                         String friendlyName = purchaseInteraction.GetDisplayName();
                         int cost = purchaseInteraction.cost;
-                        string boxText = $"{friendlyName}\n${cost}\n{distance}m";
+                        string boxText = $"{friendlyName}\n${cost}m";
                         GUI.Label(new Rect(BoundingVector.x - 50f, (float)Screen.height - BoundingVector.y, 100f, 50f), boxText);
                     }
                 }

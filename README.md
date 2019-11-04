@@ -11,8 +11,8 @@ This Cheat menu is for having some fun in game by breaking the game or testing o
   - Stats Menu -> Will display current stats of the player
   - Item Spawn Menu -> Will pop open a list of all the items in the game can be spawned in on the players location
   - Teleporter Menu -> Will spawn all the orbs (Gold, Newt, and celestial) before the teleportor starts 
+  - Lobby Management -> Menu to kick / edit players 
   - Noclip -> Allows Player to fly (needs work)
-  - Mouse 4 button toggle -> Will enable mouse 4 to be used to open the menu
   - Give Money -> Gives the local player Money, incrementable by 100
   - Give Lunar Coins -> Gives the local player Lunar Coins, incrementable by 10
   - Give Experience -> Give the local player Experience, incrementable 100
@@ -20,8 +20,6 @@ This Cheat menu is for having some fun in game by breaking the game or testing o
   - Damage Lvl -> Will modify your characters damage per level basic on the number displayed (will update when added or subtracted)
   - Crit Lvl -> Will modify your characters crit per level basic on the number displayed (will update when added or subtracted)
   - Skip Stage -> will skip the stage you are currently on
-
-
 
 # dependencies
 
@@ -34,28 +32,43 @@ The Current Plugin(s) that are required to run this:
 # Controls 
 - Insert -> Opens the Menu
 - V -> Adds Money
+- B -> Opens teleporter Menu
+- C -> Toggles Noclip
 
 Note: In order to interact with the Menu press and hold tab to bring up the cursor.
 
 # TODO
 
-- Fix Main menu clipping
-- Style Item menu [Done]
-- Add Character Select [Done]
 - Add Equipment Spawner
-- Skip Stage [Done]
-- Spawn all Portals [Done]
 - Massive Damage 
 - Spawn boss
 - Spawn Chest / prefab like mountain shrine
 - Stack Items 
-- Give all items [Done]
 - Spawn more Enemies
+- Add More Functionality to the "Lobby Managment Menu"
+
+# Credits
+
+DebugToolkit for GetNetworkUserFromString
 
 # Changelog
+- 2.4.4
+	- Updated GUID because of conflict with RoR2Cheats
+	
+- 2.4.3
+	- Added Lobby Management menu
+	- Added Kicking to lobby Management menu
+	- Moved Skip Stage Button to the teleporter menu
+	- Fixed Nullpointexception when having damage / crit modifiers on when in game menu.
+	- Removed Distance from intercation ESP to improve performance
+
+- 2.4.2
+	- Added Keybind Config
+	- Fixed Stat Menu Opening by default (found by wizard lizard #4758)
+	- Minor Code fixes
 
 - 2.4.1 
-	-Acually upadated this time :D
+	- Acually upadated this time :D
 
 - 2.4.0
 	- Added Teleporter menu

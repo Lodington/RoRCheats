@@ -32,10 +32,10 @@ namespace RoRCheats
         
         static InputManager()
         {
-            CustomKeys[0] = sanitzeKeybinds(MainMenu.OpenMenuKey.Value);
-            CustomKeys[1] = sanitzeKeybinds(MainMenu.GiveMoneyKey.Value);
-            CustomKeys[2] = sanitzeKeybinds(MainMenu.OpenTeleMenu.Value);
-            CustomKeys[3] = sanitzeKeybinds(MainMenu.ToggleNoclip.Value);
+            CustomKeys[0] = sanitzeKeybinds(Main.OpenMenuKey.Value);
+            CustomKeys[1] = sanitzeKeybinds(Main.GiveMoneyKey.Value);
+            CustomKeys[2] = sanitzeKeybinds(Main.OpenTeleMenu.Value);
+            CustomKeys[3] = sanitzeKeybinds(Main.ToggleNoclip.Value);
             InitializeDictionary(GetKeybinds(defaults, CustomKeys));
         }
 
@@ -55,7 +55,6 @@ namespace RoRCheats
             return key;
 
         }
-
         private static KeyCode[] GetKeybinds(KeyCode[] DefaultKeybinds, KeyCode[] CustomKeybinds)
         {
 

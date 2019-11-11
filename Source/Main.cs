@@ -1,36 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 using RoR2;
 using BepInEx;
 using R2API.Utils;
+using BepInEx.Configuration;
 
 namespace RoRCheats
 {
 
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Lodington.RoR2Cheats", "RoR2Cheats", "2.4.1")]
+    [BepInPlugin("com.Lodington.RoRCheats", "RoRCheats", "3.0.1")]
 
     public class Main : BaseUnityPlugin
     {
-        private static String _VERSION = "v 2.4.1";
+        public static String _VERSION = "v 3.0.1";
 
-        private static RoR2.CharacterMaster LocalPlayer;
-        private static RoR2.Inventory LocalPlayerInv;
-        private static RoR2.HealthComponent LocalHealth;
-        private static RoR2.SkillLocator LocalSkills;
-        private static RoR2.NetworkUser LocalNetworkUser;
-        private static RoR2.CharacterBody Localbody;
-        private static RoR2.CharacterMotor LocalMotor;
+        public static CharacterMaster LocalPlayer;
+        public static Inventory LocalPlayerInv;
+        public static HealthComponent LocalHealth;
+        public static SkillLocator LocalSkills;
+        public static NetworkUser LocalNetworkUser;
+        public static CharacterBody Localbody;
+        public static CharacterMotor LocalMotor;
 
-        private static bool _isMenuOpen = false;
-        private static bool _ifDragged = false;
-        private static bool _CharacterCollected = false;
-        private static bool _isStatMenuOpen = false;
-        private static bool _isTeleMenuOpen = false;
-        private static bool _ItemToggle = false;
-        private static bool _CharacterToggle = false;
+        public static bool _isMenuOpen = false;
+        public static bool _ifDragged = false;
+        public static bool _CharacterCollected = false;
+        public static bool _isStatMenuOpen = false;
+        public static bool _isTeleMenuOpen = false;
+        public static bool _ItemToggle = false;
+        public static bool _CharacterToggle = false;
+        public static bool _isLobbyMenuOpen = false;
+        public static bool _isEditStatsOpen = false;
+        public static bool _isItemSpawnMenuOpen = false;
 
         public static GUIStyle MainBgStyle, StatBgSytle, TeleBgStyle, OnStyle, OffStyle, LabelStyle, BtnStyle, CornerStyle, DisplayStyle; //make new BgStyle for stats menu 
         public static GUIStyle BtnStyle1, BtnStyle2, BtnStyle3;
@@ -38,8 +41,12 @@ namespace RoRCheats
         public static float delay = 0, widthSize = 400;
 
         public static Rect mainRect = new Rect(10, 10, 20, 20); //start position
-        public static Rect statRect = new Rect(427, 200, 20, 20); //start position
-        public static Rect teleRect = new Rect(10, 736, 20, 20); //start position
+        public static Rect statRect = new Rect(1626, 457, 20, 20); //start position
+        public static Rect teleRect = new Rect(426, 10, 20, 20); //start position
+        public static Rect lobbyRect = new Rect(426, 335, 20, 20); //start position
+        public static Rect editStatRect = new Rect(427, 434, 20, 20); //start position
+        public static Rect spawnerRect = new Rect(1076, 10, 20, 20); //start position
+        public static Rect characterRect = new Rect(1503, 10, 20, 20); //start position
 
         public static Texture2D Image = null, ontexture, onpresstexture, offtexture, offpresstexture, cornertexture, backtexture, btntexture, btnpresstexture, btntexturelabel;
         public static Texture2D NewTexture2D { get { return new Texture2D(1, 1); } }
@@ -48,74 +55,67 @@ namespace RoRCheats
         public static int damagePerLvl = 10;
         public static int CritPerLvl = 1;
         public static int allItemsQuantity = 5;
-        private static ulong xpToGive = 100;
+        public static ulong xpToGive = 100;
         public static uint moneyToGive = 100;
         public static uint coinsToGive = 10;
-        public static int btnY, mulY;
+        public static int btnY, MainMulY, StatMulY, TeleMulY, LobbyMulY, SpawnerMulY, CharacterMulY;
 
-        Dictionary<string, int> nameToIndexMap = new Dictionary<string, int>();
-        static Int32 Margin = 5;
-        static Int32 ItemWidth = 400;
-        static Int32 CharacterWidth = 400;
-        Int32 ItemSelectorId, CharacterSelectId;
-        Vector2 ItemScrollPos, CharacterScrollPos;
+        public static ConfigWrapper<string> OpenMenuKey;
+        public static ConfigWrapper<string> GiveMoneyKey;
+        public static ConfigWrapper<string> OpenTeleMenu;
+        public static ConfigWrapper<string> ToggleNoclip;
+    
+        public static Vector2 scrollPosition = Vector2.zero;
 
-        Rect CharacterWindow = new Rect(Screen.width - CharacterWidth - Margin, Margin, CharacterWidth, Screen.height - (Margin * 2));
-        Rect ItemSelectorWindow = new Rect(Screen.width - ItemWidth - Margin, Margin, ItemWidth, Screen.height - (Margin * 2));
+        static Dictionary<String, Int32> nameToIndexMap = new Dictionary<String, Int32>();
+        public static string[] Players = new string[16];
 
         private void OnGUI()
         {
-            mainRect = GUI.Window(0, mainRect, new GUI.WindowFunction(SetBG), "", new GUIStyle());
+            mainRect = GUI.Window(0, mainRect, new GUI.WindowFunction(SetMainBG), "", new GUIStyle());
             if (_isMenuOpen)
             {
                 DrawMenu();
-
             }
             if (_isStatMenuOpen)
             {
-                statRect = GUI.Window(1, statRect, new GUI.WindowFunction(SetBG), "", new GUIStyle());
-                DrawStatsMenu();
+                statRect = GUI.Window(1, statRect, new GUI.WindowFunction(SetStatsBG), "", new GUIStyle());
+                RoRCheats.DrawMenu.DrawStatsMenu(statRect.x, statRect.y, widthSize, StatMulY, MainBgStyle, LabelStyle);
             }
             if (_isTeleMenuOpen)
             {
-                teleRect = GUI.Window(2, teleRect, new GUI.WindowFunction(SetBG), "", new GUIStyle());
-                DrawTeleMenu();
+                teleRect = GUI.Window(2, teleRect, new GUI.WindowFunction(SetTeleBG), "", new GUIStyle());
+                RoRCheats.DrawMenu.DrawTeleMenu(teleRect.x, teleRect.y, widthSize, TeleMulY, MainBgStyle, BtnStyle, LabelStyle);
             }
+            if (_isLobbyMenuOpen)
+            {
+                lobbyRect = GUI.Window(3, lobbyRect, new GUI.WindowFunction(SetLobbyBG), "", new GUIStyle());
+                RoRCheats.DrawMenu.DrawManagmentMenu(lobbyRect.x, lobbyRect.y, widthSize, LobbyMulY, MainBgStyle, BtnStyle, LabelStyle);
+            }
+            if (_isItemSpawnMenuOpen)
+            {
+                spawnerRect = GUI.Window(4, spawnerRect, new GUI.WindowFunction(SetSpawnerBG), "", new GUIStyle());
+                RoRCheats.DrawMenu.DrawSpawnMenu(spawnerRect.x, spawnerRect.y, widthSize, SpawnerMulY, MainBgStyle, BtnStyle, LabelStyle);
+            } 
             if (_CharacterCollected)
             {
                 ESPRoutine();
             }
-            if (_ItemToggle)
-            {
-                ItemSelectorWindow = GUILayout.Window(ItemSelectorId, ItemSelectorWindow, SpawnItem, "Item Select");
-            }
+
             if (_CharacterToggle)
             {
-                CharacterWindow = GUILayout.Window(CharacterSelectId, CharacterWindow, CharacterWindowMethod, "Character Select");
+                characterRect = GUI.Window(5, characterRect, new GUI.WindowFunction(SetCharacterBG), "", new GUIStyle());
+                CharacterWindowMethod();
             }
         }
+
         public void Awake()
         {
-            nameToIndexMap = typeof(BodyCatalog).GetFieldValue<Dictionary<string, int>>("nameToIndexMap");
-            CharacterSelectId = GetHashCode();
-            ItemSelectorId = GetHashCode();
-
-            //Here we are subscribing to the SurvivorCatalogReady event, which is run when the subscriber catalog can be modified.
-            //We insert Bandit as a new character here, which is then automatically added to the internal game catalog and reconstructed.
-            /* R2API.SurvivorAPI.SurvivorCatalogReady += (s, e) =>
-             {
-                 var survivor = new SurvivorDef
-                 {
-                     bodyPrefab = BodyCatalog.FindBodyPrefab("BanditBody"),
-                     descriptionToken = "BANDIT_DESCRIPTION",
-                     displayPrefab = Resources.Load<GameObject>("Prefabs/Characters/BanditDisplay"),
-                     primaryColor = new Color(0.8039216f, 0.482352942f, 0.843137264f),
-                     unlockableName = "Bandit"
-                 };
-
-                 R2API.SurvivorAPI.AddSurvivorOnReady(survivor);
-                 Debug.Log("Loaded Bandit");
-             };*/
+            nameToIndexMap = typeof(BodyCatalog).GetFieldValue<Dictionary<String, Int32>>("nameToIndexMap");
+            OpenMenuKey = Config.Wrap("Main Menu", "Main Menu Keybind", "Default Key to open menu is insert", "Insert");
+            GiveMoneyKey = Config.Wrap("Give Money", "Give money Keybind", "Default Key to give money is V", "V");
+            OpenTeleMenu = Config.Wrap("Teleporter Menu", "Open teleporter Keybind", "Default Key to open the Teleporter menu is B", "B");
+            ToggleNoclip = Config.Wrap("No Clip Toggle", "Toggle No Clip Keybind", "Default Key to toggle Noclip is C", "C");
         }
 
         public void Start()
@@ -232,43 +232,32 @@ namespace RoRCheats
             {
                 Cursor.visible = false;
             }
-            if (Input.GetKeyDown(KeyCode.Insert))
+            if (InputManager.GetKeyDown("OpenMenu"))
             {
                 _isMenuOpen = !_isMenuOpen;
-                Debug.Log("Menu toggled");
                 GetCharacter();
             }
-            if (Input.GetKeyDown(KeyCode.V))
+            if (InputManager.GetKeyDown("GiveMoney"))
             {
                 GiveMoney();
-                Debug.Log("V Key Pressed");
             }
-            if (MouseToggle)
+            if(InputManager.GetKeyDown("OpenTeleMenu"))
             {
-                if (Input.GetKeyDown(KeyCode.Mouse4))
-                {
-                    _isMenuOpen = !_isMenuOpen;
-                    Debug.Log("Menu toggled");
-                    GetCharacter();
-                }
+                _isTeleMenuOpen = !_isTeleMenuOpen;
+            }
+            if(InputManager.GetKeyDown("ToggleNoClip"))
+            {
+                NoclipToggle = !NoclipToggle;
             }
         }
 
-
         private void NoClipRoutine()
         {
-            if (_CharacterCollected) { 
-                if (NoclipToggle)
-                {
-                    LocalMotor.isFlying = false;
-                    LocalMotor.useGravity = false;
-                }
-                else if (!NoclipToggle)
-                {
-                    LocalMotor.isFlying = false;
-                    LocalMotor.useGravity = true;
-                }
+            if (NoclipToggle)
+            {
+                NoClip.DoNoclip();
             }
+            
         }
         private void DamageRoutine()
         {
@@ -308,11 +297,11 @@ namespace RoRCheats
                 }            
             }
         }
-      
 
-        public static void SetBG(int windowID)
+        #region SetBG
+        public static void SetMainBG(int windowID)
         {
-            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * mulY), "", CornerStyle);
+            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * MainMulY), "", CornerStyle);
             if (Event.current.type == EventType.MouseDrag)
             {
                 delay += Time.deltaTime;
@@ -327,341 +316,163 @@ namespace RoRCheats
                 if (!_ifDragged)
                 {
                     _isMenuOpen = !_isMenuOpen;
+                    GetCharacter();
+                }
+                _ifDragged = false;
+            }
+            GUI.DragWindow();
+        }
+        public static void SetCharacterBG(int windowID)
+        {
+            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * CharacterMulY), "", CornerStyle);
+            if (Event.current.type == EventType.MouseDrag)
+            {
+                delay += Time.deltaTime;
+                if (delay > 0.3f)
+                {
+                    _ifDragged = true;
+                }
+            }
+            else if (Event.current.type == EventType.MouseUp)
+            {
+                delay = 0;
+                if (!_ifDragged)
+                {
+                    _CharacterToggle = !_CharacterToggle;
+                }
+                _ifDragged = false;
+            }
+            GUI.DragWindow();
+        }
+        public static void SetStatsBG(int windowID)
+        {
+            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * StatMulY), "", CornerStyle);
+            if (Event.current.type == EventType.MouseDrag)
+            {
+                delay += Time.deltaTime;
+                if (delay > 0.3f)
+                {
+                    _ifDragged = true;
+                }
+            }
+            else if (Event.current.type == EventType.MouseUp)
+            {
+                delay = 0;
+                if (!_ifDragged)
+                {
                     _isStatMenuOpen = !_isStatMenuOpen;
                 }
                 _ifDragged = false;
             }
             GUI.DragWindow();
         }
-
-        public static void DrawTeleMenu()
+        public static void SetTeleBG(int windowID)
         {
-            int AmountOfButtons = 4;
-            GUI.Box(new Rect(teleRect.x + 0f, teleRect.y + 0f, widthSize + 10, 50f + 45 * AmountOfButtons), "", MainBgStyle);
-            GUI.Label(new Rect(teleRect.x + 5f, teleRect.y + 5f, widthSize + 5, 95f), "Teleporter Menu", LabelStyle);
-
-            if (_CharacterCollected)
+            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * TeleMulY), "", CornerStyle);
+            if (Event.current.type == EventType.MouseDrag)
             {
-                if (GUI.Button(BtnRect(1, "tele"), "Spawn Gold Portal", BtnStyle))
-                    SpawnPortals("gold");
-                if (GUI.Button(BtnRect(2, "tele"), "Spawn Blue Portal", BtnStyle))
-                    SpawnPortals("newt");
-                if (GUI.Button(BtnRect(3, "tele"), "Spawn Celestal Portal", BtnStyle))
-                    SpawnPortals("blue");
-                if (GUI.Button(BtnRect(4, "tele"), "Spawn All Portals", BtnStyle))
-                    SpawnPortals("all");
-                
+                delay += Time.deltaTime;
+                if (delay > 0.3f)
+                {
+                    _ifDragged = true;
+                }
             }
-            else
+            else if (Event.current.type == EventType.MouseUp)
             {
-                _isStatMenuOpen = false;
+                delay = 0;
+                if (!_ifDragged)
+                {
+                    _isTeleMenuOpen = !_isTeleMenuOpen;
+                }
+                _ifDragged = false;
             }
-
+            GUI.DragWindow();
         }
-
-        public static void DrawStatsMenu()
+        public static void SetLobbyBG(int windowID)
         {
-            int AmountOfButtons = 4;
-            GUI.Box(new Rect(statRect.x + 0f, statRect.y + 0f, 275, 50f + 45 * AmountOfButtons), "", MainBgStyle);
-            GUI.Label(new Rect(statRect.x + 5f, statRect.y + 5f, widthSize + 5, 50f), "Stats Menu", LabelStyle);
-          
-            GUI.Button(BtnRect(1, "stats"), "Damage Per LvL = " + Localbody.levelDamage, LabelStyle);
-            GUI.Button(BtnRect(2, "stats"), "Crit Per Level = " + Localbody.levelCrit, LabelStyle);
-            GUI.Button(BtnRect(3, "stats"), "Current Damage = " + Localbody.damage, LabelStyle);
-            GUI.Button(BtnRect(4, "stats"), "Current Crit = " + Localbody.crit, LabelStyle);
-           
+            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * LobbyMulY), "", CornerStyle);
+            if (Event.current.type == EventType.MouseDrag)
+            {
+                delay += Time.deltaTime;
+                if (delay > 0.3f)
+                {
+                    _ifDragged = true;
+                }
+            }
+            else if (Event.current.type == EventType.MouseUp)
+            {
+                delay = 0;
+                if (!_ifDragged)
+                {
+                    _isLobbyMenuOpen = !_isLobbyMenuOpen;
+                }
+                _ifDragged = false;
+            }
+            GUI.DragWindow();
         }
+        public static void SetEditStatBG(int windowID)
+        {
+            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * MainMulY), "", CornerStyle);
+            if (Event.current.type == EventType.MouseDrag)
+            {
+                delay += Time.deltaTime;
+                if (delay > 0.3f)
+                {
+                    _ifDragged = true;
+                }
+            }
+            else if (Event.current.type == EventType.MouseUp)
+            {
+                delay = 0;
+                if (!_ifDragged)
+                {
+                    _isEditStatsOpen = !_isEditStatsOpen;
+                }
+                _ifDragged = false;
+            }
+            GUI.DragWindow();
+        }
+     public static void SetSpawnerBG(int windowID)
+        {
+            GUI.Box(new Rect(0f, 0f, widthSize + 10, 50f + 45 * MainMulY), "", CornerStyle);
+            if (Event.current.type == EventType.MouseDrag)
+            {
+                delay += Time.deltaTime;
+                if (delay > 0.3f)
+                {
+                    _ifDragged = true;
+                }
+            }
+            else if (Event.current.type == EventType.MouseUp)
+            {
+                delay = 0;
+                if (!_ifDragged)
+                {
+                    _isItemSpawnMenuOpen = !_isItemSpawnMenuOpen;
+                }
+                _ifDragged = false;
+            }
+            GUI.DragWindow();
+        }
+        #endregion
 
         public static void DrawMenu()
         {
-            int AmountOfButtons = 16;
-            GUI.Box(new Rect(mainRect.x + 0f, mainRect.y + 0f, widthSize + 10, 50f + 45 * AmountOfButtons), "", MainBgStyle);
+            GUI.Box(new Rect(mainRect.x + 0f, mainRect.y + 0f, widthSize + 10, 50f + 45 * MainMulY), "", MainBgStyle);
             GUI.Label(new Rect(mainRect.x + 5f, mainRect.y + 5f, widthSize + 5, 95f), "RoRCheat Menu\n" + _VERSION, LabelStyle);
-           if(!_CharacterCollected)
-            {
-                if (_CharacterToggle)
-                {
-                    if (GUI.Button(BtnRect(1, "full"), "Character Selection: ON", OnStyle))
-                    {
-                        _CharacterToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(1, "full"), "Character Selection: OFF", OffStyle))
-                {
-                    _CharacterToggle = true;
-                }
-                if (MouseToggle)
-                {
-                    if (GUI.Button(BtnRect(2, "full"), "Mouse 4 button Toggle : ON", OnStyle))
-                    {
-                        MouseToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(2, "full"), "Mouse 4 button Toggle : OFF", OffStyle))
-                {
-                    MouseToggle = true;
-                }
-            }
 
+            if (!_CharacterCollected)
+            {
+                RoRCheats.DrawMenu.DrawNotCollectedMenu(LabelStyle);
+            }
 
             if (_CharacterCollected)
             {
-               
-                // we dont have a god toggle bool, because we can just ref localhealth
-                if (LocalHealth.godMode)
-                {
-                    if (GUI.Button(BtnRect(1, "full"), "God mode: ON", OnStyle))
-                    {
-                        LocalHealth.godMode = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(1, "full"), "God mode: OFF", OffStyle))
-                {
-                    LocalHealth.godMode = true;
-                }
-
-                if (skillToggle)
-                {
-                    if (GUI.Button(BtnRect(2, "full"), "Infinite Skills: ON", OnStyle))
-                    {
-                        skillToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(2, "full"), "Infinite Skills: OFF", OffStyle))
-                {
-                    skillToggle = true;
-                }
-
-                if (renderInteractables)
-                {
-                    if (GUI.Button(BtnRect(3, "full"), "Interactables ESP: ON", OnStyle))
-                    {
-                        renderInteractables = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(3, "full"), "Interactables ESP: OFF", OffStyle))
-                {
-                    renderInteractables = true;
-                }
-                if (_CharacterToggle)
-                {
-                    if (GUI.Button(BtnRect(4, "full"), "Character Selection: ON", OnStyle))
-                    {
-                        _CharacterToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(4, "full"), "Character Selection: OFF", OffStyle))
-                {
-                    _CharacterToggle = true;
-                }
-                if (_isStatMenuOpen)
-                {
-                    if (GUI.Button(BtnRect(5, "full"), "Stats Menu: ON", OnStyle))
-                    {
-                        _isStatMenuOpen = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(5, "full"), "Stats Menu: OFF", OffStyle))
-                {
-                    _isStatMenuOpen = true;
-                }
-                if (_ItemToggle)
-                {
-                    if (GUI.Button(BtnRect(6, "full"), "Item Spawn Menu: ON", OnStyle))
-                    {
-                        _ItemToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(6, "full"), "Item Spawn Menu: OFF", OffStyle))
-                {
-                    _ItemToggle = true;
-                }
-                if (_isTeleMenuOpen)
-                {
-                    if (GUI.Button(BtnRect(7, "full"), "Teleporter Menu: ON", OnStyle))
-                    {
-                        _isTeleMenuOpen = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(7, "full"), "Teleporter Menu: OFF", OffStyle))
-                {
-                    _isTeleMenuOpen = true;
-                }
-                if(NoclipToggle)
-                {
-                    if (GUI.Button(BtnRect(8, "full"), "Noclip: ON", OnStyle))
-                    {
-                        NoclipToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(8, "full"), "Noclip: ON", OffStyle))
-                {
-                    NoclipToggle = true;
-                }
-                if (MouseToggle)
-                {
-                    if (GUI.Button(BtnRect(9, "full"), "Mouse 4 button Toggle : ON", OnStyle)) {
-                        MouseToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(9, "full"), "Mouse 4 button Toggle : OFF", OffStyle)) {
-                    MouseToggle = true;
-                }
-
-                if (GUI.Button(BtnRect(10, "multiply"), "Give Money: " + moneyToGive.ToString(), BtnStyle))
-                {
-                    GiveMoney();
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 80, mainRect.y + btnY, 40, 40), "-", OffStyle))
-                {
-                    if (moneyToGive > 100)
-                        moneyToGive -= 100;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 35, mainRect.y + btnY, 40, 40), "+", OffStyle))
-                {
-                    if (moneyToGive >= 100)
-                        moneyToGive += 100;
-                }
-                if (GUI.Button(BtnRect(11, "multiply"), "Give Lunar Coins: " + coinsToGive.ToString(), BtnStyle))
-                {
-                    GiveLunarCoins();
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 80, mainRect.y + btnY, 40, 40), "-", OffStyle))
-                {
-                    if (coinsToGive > 10)
-                        coinsToGive -= 10;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 35, mainRect.y + btnY, 40, 40), "+", OffStyle))
-                {
-                    if (coinsToGive >= 10)
-                        coinsToGive += 10;
-                }
-                if (GUI.Button(BtnRect(12, "multiply"), "Give Experience: " + xpToGive.ToString(), BtnStyle))
-                {
-                    giveXP();
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 80, mainRect.y + btnY, 40, 40), "-", OffStyle))
-                {
-                    if (xpToGive > 100)
-                        xpToGive -= 100;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 35, mainRect.y + btnY, 40, 40), "+", OffStyle))
-                {
-                    if (xpToGive >= 100)
-                        xpToGive += 100;
-                }
-                if (GUI.Button(BtnRect(13, "multiply"), "Roll Items: " + itemsToRoll.ToString(), BtnStyle))
-                {
-                    RollItems(itemsToRoll.ToString());
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 80, mainRect.y + btnY, 40, 40), "-", OffStyle))
-                {
-                    if (itemsToRoll > 5)
-                        itemsToRoll -= 5;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 35, mainRect.y + btnY, 40, 40), "+", OffStyle))
-                {
-                    if (itemsToRoll >= 5)
-                        itemsToRoll += 5;
-                }
-                /*if (GUI.Button(BtnRect(11, "multiply"), "Give All Items: " + allItemsQuantity.ToString(), BtnStyle))
-                {
-                    GiveAllItems();
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 80, mainRect.y + btnY, 40, 40), "-", OffStyle))
-                {
-                     if (allItemsQuantity > 1)
-                         allItemsQuantity -= 1;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 35, mainRect.y + btnY, 40, 40), "+", OffStyle))
-                {
-                     if (allItemsQuantity >= 1)
-                         allItemsQuantity += 1;
-                }*/
-                if (damageToggle)
-                {
-                    if (GUI.Button(BtnRect(14, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OnStyle))
-                    {
-                        damageToggle = false;
-                    }
-                }
-                else if (GUI.Button(BtnRect(14, "multiply"), "Damage LvL : " + damagePerLvl.ToString(), OffStyle))
-                {
-                    damageToggle = true;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 80, mainRect.y + btnY, 40, 40), "-", OffStyle))
-                {
-                    if (damagePerLvl > 0)
-                        damagePerLvl -= 10;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 35, mainRect.y + btnY, 40, 40), "+", OffStyle))
-                {
-                    if (damagePerLvl >= 0)
-                        damagePerLvl += 10;
-                }
-                if (critToggle)
-                {
-                    if (GUI.Button(BtnRect(15, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OnStyle))
-                    {
-                        critToggle = false; 
-                    }
-                }
-                else if (GUI.Button(BtnRect(15, "multiply"), "Crit LvL : " + CritPerLvl.ToString(), OffStyle))
-                {
-                    critToggle = true;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 80, mainRect.y + btnY, 40, 40), "-", OffStyle))
-                {
-                    if (CritPerLvl > 0)
-                        CritPerLvl -= 1;
-                }
-                if (GUI.Button(new Rect(mainRect.x + widthSize - 35, mainRect.y + btnY, 40, 40), "+", OffStyle))
-                {
-                    if (CritPerLvl >= 0)
-                        CritPerLvl += 1;
-                }
-
-                if (GUI.Button(BtnRect(16 , "full"), "Skip Stage", BtnStyle))
-                    skipStage();
-
-            }
-            else
-            {
-                GUI.Box(new Rect(mainRect.x, mainRect.y + 95f * mulY, widthSize + 10, 50f), "", MainBgStyle);
-                GUI.Label(new Rect(mainRect.x, mainRect.y + 95f * mulY, widthSize + 10, 50f), "<color=yellow>Note: Buttons Will Appear in Match Only</color>", LabelStyle);
+                RoRCheats.DrawMenu.DrawMainMenu(mainRect.x, mainRect.y, widthSize, MainMulY, MainBgStyle, OnStyle, OffStyle, BtnStyle);
             }
         }
-
-
-        // Rect for buttons
-        // It automatically auto position buttons. There is no need to change it
-        public static Rect BtnRect(int y, String buttonType)
-        {
-            mulY = y;
-            if (buttonType.Equals("multiply"))
-            {
-                btnY = 5 + 45 * y;
-                return new Rect(mainRect.x + 5, mainRect.y + 5 + 45 * y, widthSize - 90, 40);
-            }
-            else if (buttonType.Equals("stats"))
-            {
-                return new Rect(statRect.x + 5, statRect.y + 5 + 45 * y, widthSize - 150, 40);
-            }
-            else if (buttonType.Equals("tele"))
-            {
-                return new Rect(teleRect.x + 5, teleRect.y + 5 + 45 * y, widthSize, 40);
-            }
-            else if (buttonType.Equals("full"))
-            {
-                return new Rect(mainRect.x + 5, mainRect.y + 5 + 45 * y, widthSize, 40);
-            }
-            else
-            {
-                return new Rect(mainRect.x + 5, mainRect.y + 5 + 45 * y, widthSize, 40);
-            }
-        }
-
         // Textures
+        #region Textures
         public static Texture2D BtnTexture
         {
             get
@@ -789,116 +600,66 @@ namespace RoRCheats
                 return cornertexture;
             }
         }
+        #endregion
+        //Debugtoolkit team
+      
+        public static void CharacterWindowMethod()
+        {
+            GUI.Box(new Rect(characterRect.x + 0f, characterRect.y + 0f, widthSize + 10, 50f + 45 * 15), "", MainBgStyle);
+            GUI.Label(new Rect(characterRect.x + 5f, characterRect.y + 5f, widthSize + 5, 95f), "Character Menu", LabelStyle);
 
-        // random items
-        private static void RollItems(string amount)
-        {
-            Debug.Log("RoRCheats : Rolling " + amount + " items");
-            try
-            {
-                int num;
-                TextSerialization.TryParseInvariant(amount, out num);
-                if (num > 0)
+            
+            scrollPosition = GUI.BeginScrollView(new Rect(characterRect.x + 0f, characterRect.y + 0f, widthSize + 10, 50f + 45 * 15), scrollPosition, new Rect(characterRect.x + 0f, characterRect.y + 0f, widthSize + 10, 50f + 45 * CharacterMulY), false, true);
+            int buttonPlacement = 1;
+            foreach (var body in nameToIndexMap)
+            {   
+                if (body.Key.Contains("(Clone)"))
+                    continue;
+                if (GUI.Button(btn.BtnRect(buttonPlacement, "character"), body.Key.Replace("Body", ""), BtnStyle))
                 {
-                    WeightedSelection<List<PickupIndex>> weightedSelection = new WeightedSelection<List<PickupIndex>>(8);
-                    weightedSelection.AddChoice(Run.instance.availableTier1DropList, 80f);
-                    weightedSelection.AddChoice(Run.instance.availableTier2DropList, 19f);
-                    weightedSelection.AddChoice(Run.instance.availableTier3DropList, 1f);
-                    for (int i = 0; i < num; i++)
-                    {
-                        List<PickupIndex> list = weightedSelection.Evaluate(UnityEngine.Random.value);
-                        LocalPlayerInv.GiveItem(list[UnityEngine.Random.Range(0, list.Count)].itemIndex, 1);
-                    }
-                }
-            }
-            catch (ArgumentException)
-            {
-            }
-        }
-        public static void skipStage()
-        {
-            Run.instance.AdvanceStage(Run.instance.nextStageScene);
-            Debug.Log("RoRCheats : Skipped Stage");
-        }
-        private static void SpawnPortals(string portal)
-        {
-            if (TeleporterInteraction.instance)
-            {
-                if (portal.Equals("gold"))
-                {
-                    Debug.Log("RoRCheats : Spawned Gold Portal");
-                    TeleporterInteraction.instance.Network_shouldAttemptToSpawnGoldshoresPortal = true;
-                }
-                else if (portal.Equals("newt"))
-                {
-                    Debug.Log("RoRCheats : Spawned Shop Portal");
-                    TeleporterInteraction.instance.Network_shouldAttemptToSpawnShopPortal = true;
-                }
-                else if (portal.Equals("blue"))
-                {
-                    Debug.Log("RoRCheats : Spawned Celestal Portal");
-                    TeleporterInteraction.instance.Network_shouldAttemptToSpawnMSPortal = true;
-                }
-                else if (portal.Equals("all"))
-                {
-                    Debug.Log("RoRCheats : Spawned All Portals");
-                    TeleporterInteraction.instance.Network_shouldAttemptToSpawnGoldshoresPortal = true;
-                    TeleporterInteraction.instance.Network_shouldAttemptToSpawnShopPortal = true;
-                    TeleporterInteraction.instance.Network_shouldAttemptToSpawnMSPortal = true;
-                }
-                else
-                {
-                    Debug.LogError("Selection was " + portal + " please contact mod developer.");
-                }
-                  
-
-            }
-        }
-        void CharacterWindowMethod(Int32 id)
-        {
-            CharacterScrollPos = GUILayout.BeginScrollView(CharacterScrollPos);
-            {
-                
-                foreach (var body in nameToIndexMap)
-                {
-                    if (body.Key.Contains("(Clone)"))
-                        continue;
-                    if (GUILayout.Button(body.Key.Replace("Body", "")))
-                    {
-                        GameObject newBody = RoR2.BodyCatalog.FindBodyPrefab(body.Key);
-                        if (newBody == null)
-                            return;
-                        var localUser = RoR2.LocalUserManager.GetFirstLocalUser();
-                        if (localUser == null || localUser.cachedMasterController == null || localUser.cachedMasterController.master == null) return;
-                        var master = localUser.cachedMasterController.master;
-                        if (master == null)
-                        {
-                            var user = ((RoR2.UI.MPEventSystem)UnityEngine.EventSystems.EventSystem.current).localUser;
-                            if (user.eventSystem == UnityEngine.EventSystems.EventSystem.current)
-                            {
-                                if (user.currentNetworkUser == null)
-                                    return;
-                                user.currentNetworkUser.CallCmdSetBodyPreference(body.Value);
-                            }
-                            return;
-                        }
-                        master.bodyPrefab = newBody;
-                        master.Respawn(master.GetBody().transform.position, master.GetBody().transform.rotation);
-                        enabled = false;
-                        DrawMenu();
+                    GameObject newBody = BodyCatalog.FindBodyPrefab(body.Key);
+                    if (newBody == null)
                         return;
-
-                    }
+                    var localUser = RoR2.LocalUserManager.GetFirstLocalUser();
+                    if (localUser == null || localUser.cachedMasterController == null || localUser.cachedMasterController.master == null) return;
+                    var master = localUser.cachedMasterController.master;
+                       
+                    master.bodyPrefab = newBody;
+                    master.Respawn(master.GetBody().transform.position, master.GetBody().transform.rotation);
+                    //DrawMenu();
+                    return;
                 }
-                
+                buttonPlacement++;
             }
-            GUILayout.EndScrollView();
-            GUI.DragWindow();
+            GUI.EndScrollView();
+        }
+
+        public static void unlockall()
+        {
+            var unlockables = typeof(UnlockableCatalog).GetFieldValue<Dictionary<String, UnlockableDef>>("nameToDefTable");
+            foreach (var unlockable in unlockables)
+                RoR2.Run.instance.GrantUnlockToAllParticipatingPlayers(unlockable.Key);
+            foreach (var networkUser in NetworkUser.readOnlyInstancesList)
+                networkUser.AwardLunarCoins(100);
+            var achievementManager = AchievementManager.GetUserAchievementManager(LocalUserManager.GetFirstLocalUser());
+            foreach (var achievement in AchievementManager.allAchievementDefs)
+                achievementManager.GrantAchievement(achievement);
+            var profile = RoR2.LocalUserManager.GetFirstLocalUser().userProfile;
+            foreach (var survivor in RoR2.SurvivorCatalog.allSurvivorDefs)
+            {
+                if (profile.statSheet.GetStatValueDouble(RoR2.Stats.PerBodyStatDef.totalTimeAlive, survivor.bodyPrefab.name) == 0.0)
+                    profile.statSheet.SetStatValueFromString(RoR2.Stats.PerBodyStatDef.totalTimeAlive.FindStatDef(survivor.bodyPrefab.name), "0.1");
+            }
+            for (int i = 0; i < 150; i++)
+            {
+                profile.DiscoverPickup(new RoR2.PickupIndex((RoR2.ItemIndex)i));
+                profile.DiscoverPickup(new RoR2.PickupIndex((RoR2.EquipmentIndex)i));
+            }
         }
 
         // try and setup our character, if we hit an error we set it to false
         //TODO: Find a way to stop it from checking whilst in main menu/lobby menu
-        private static void GetCharacter()
+        public static void GetCharacter()
         {
             try
             {                
@@ -928,134 +689,99 @@ namespace RoRCheats
             }
         }
         //clears inventory, duh.
-        private static void ClearInventory()
-        {
-            if (LocalPlayerInv)
-            {
-                for (ItemIndex itemIndex = ItemIndex.Syringe; itemIndex < (ItemIndex)78; itemIndex++)
-                {
-                    
-                    LocalPlayerInv.ResetItem(itemIndex);
-                    
-                }
-                LocalPlayerInv.SetEquipmentIndex(EquipmentIndex.None);
-            }
-        }
-        //TODO:
-        //Seems like after giving all items and removing all items, something breaks.
-        //throws ArgumentException: Destination array was not long enough. Look into later.
-        private static void GiveAllItems()
-        {
-            if (LocalPlayerInv)
-            {
-                for (ItemIndex itemIndex = ItemIndex.Syringe; itemIndex < (ItemIndex)78; itemIndex++)
-                {
-                    //plantonhit kills you when you pick it up
-                    if (itemIndex == ItemIndex.PlantOnHit)
-                        continue;
-                    //ResetItem sets quantity to 1, RemoveItem removes the last one.
-                    LocalPlayerInv.GiveItem(itemIndex, allItemsQuantity);
-                }
-            }
-        }
 
-        void SpawnItem(Int32 id)
-        {
-            int width = 170;
-            if (_CharacterCollected)
-            { 
-
-            ItemScrollPos = GUILayout.BeginScrollView(ItemScrollPos);
-
-           
-                for (int i = (int)ItemIndex.Syringe; i < (int)ItemIndex.Count; i++)
-                {
-                    GUILayout.BeginHorizontal("box") ;
-                    var def = ItemCatalog.GetItemDef((ItemIndex)i);
-                    if (GUILayout.Button(Language.GetString(def.nameToken), BtnStyle, GUILayout.Width(width), GUILayout.ExpandHeight(true)))
-                    {
-                        GUILayout.Space(10);
-                        var localUser = LocalUserManager.GetFirstLocalUser();
-                        if (localUser.cachedMasterController && localUser.cachedMasterController.master)
-                        {
-                            var body = localUser.cachedMasterController.master.GetBody();
-                            PickupDropletController.CreatePickupDroplet(new PickupIndex((ItemIndex)i), body.transform.position + (Vector3.up * 1.5f), Vector3.up * 20f + body.transform.forward * 2f);
-                            
-                        }
-                    }
-                    if(GUILayout.Button("x10", BtnStyle, GUILayout.Width(width), GUILayout.ExpandHeight(true)))
-                    {
-                       
-                        for(int counter = 0; counter <= 9; counter++)
-                        {
-                            var localUser = LocalUserManager.GetFirstLocalUser();
-                            if (localUser.cachedMasterController && localUser.cachedMasterController.master)
-                            {
-                                var body = localUser.cachedMasterController.master.GetBody();
-                                PickupDropletController.CreatePickupDroplet(new PickupIndex((ItemIndex)i), body.transform.position + (Vector3.up * 1.5f), Vector3.up * 20f + body.transform.forward * 2f);
-                            
-                            }
-                        }
-                    }
-                    GUILayout.EndHorizontal();
-                }
-            }
-            GUILayout.EndScrollView();
-            GUI.DragWindow();
-        }
        
-        private static void StackInventory()
-        {
-            //Does the same thing as the shrine of order. Orders all your items into stacks of several random items.
-            LocalPlayerInv.ShrineRestackInventory(Run.instance.runRNG);
-        }
         // self explanatory
-        private static void giveXP()
+        public static void giveXP()
         {
             LocalPlayer.GiveExperience(xpToGive);
         }
-        private static void GiveMoney()
+        public static void GiveMoney()
         {
             LocalPlayer.GiveMoney(moneyToGive);
+            Debug.Log("RoRCheats: Giving " + moneyToGive + " to the player");
         }
         //uh, duh.
-        private static void GiveLunarCoins()
+        public static void GiveLunarCoins()
         {
             LocalNetworkUser.AwardLunarCoins(coinsToGive);
         }
 
         public static void LevelPlayersDamage()
-        { 
-            Localbody.levelDamage = (float)damagePerLvl;
-            Localbody.RecalculateStats();
+        {
+            try
+            {
+                Localbody.levelDamage = (float)damagePerLvl;
+                Localbody.RecalculateStats();
+            }
+            catch (NullReferenceException)
+            {
+
+            }
         }
         public static void LevelPlayersCrit()
         {
-            Localbody.levelCrit = (float)CritPerLvl;
-            Localbody.RecalculateStats();
-        }
+            try
+            {
+                Localbody.levelCrit = (float)CritPerLvl;
+                Localbody.RecalculateStats();
+            }
+            catch (NullReferenceException)
+            {
 
-        
+            }
+        }
         private static void RenderInteractables()
         {
-
-            foreach (PurchaseInteraction purchaseInteraction in PurchaseInteraction.FindObjectsOfType(typeof(PurchaseInteraction)))
+            try
             {
-                if(purchaseInteraction.available)
+                foreach (TeleporterInteraction teleporterInteraction in InstanceTracker.GetInstancesList<TeleporterInteraction>())
                 {
-                    float distanceToObject = Vector3.Distance(Camera.main.transform.position, purchaseInteraction.transform.position);
-                    Vector3 Position = Camera.main.WorldToScreenPoint(purchaseInteraction.transform.position);
-                    var BoundingVector = new Vector3(Position.x, Position.y, Position.z);
-                    if (BoundingVector.z > 0.01)
+                    if (teleporterInteraction.isActiveAndEnabled)
                     {
-                        GUI.color = Color.green;
-                        int distance = (int)distanceToObject;
-                        String friendlyName = purchaseInteraction.GetDisplayName();
-                        int cost = purchaseInteraction.cost;
-                        string boxText = $"{friendlyName}\n${cost}\n{distance}m";
-                        GUI.Label(new Rect(BoundingVector.x - 50f, (float)Screen.height - BoundingVector.y, 100f, 50f), boxText);
+                        float distanceToObject = Vector3.Distance(Camera.main.transform.position, teleporterInteraction.transform.position);
+                        Vector3 Position = Camera.main.WorldToScreenPoint(teleporterInteraction.transform.position);
+                        var BoundingVector = new Vector3(Position.x, Position.y, Position.z);
+                        if (BoundingVector.z > 0.01)
+                        {
+                            GUI.color = Color.yellow;
+                            int distance = (int)distanceToObject;
+                            String friendlyName = "Teleporter";
+                            string boxText = $"{friendlyName}\n{distance}m";
+                            GUI.Label(new Rect(BoundingVector.x - 50f, (float)Screen.height - BoundingVector.y, 100f, 50f), boxText);
+                        }
                     }
                 }
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+            try
+            {
+
+                foreach (PurchaseInteraction purchaseInteraction in InstanceTracker.GetInstancesList<PurchaseInteraction>())
+                {
+                    if (purchaseInteraction.available)
+                    {
+                        float distanceToObject = Vector3.Distance(Camera.main.transform.position, purchaseInteraction.transform.position);
+                        Vector3 Position = Camera.main.WorldToScreenPoint(purchaseInteraction.transform.position);
+                        var BoundingVector = new Vector3(Position.x, Position.y, Position.z);
+                        if (BoundingVector.z > 0.01)
+                        {
+                            GUI.color = Color.green;
+                            int distance = (int)distanceToObject;
+                            String friendlyName = purchaseInteraction.GetDisplayName();
+                            int cost = purchaseInteraction.cost;
+                            string boxText = $"{friendlyName}\n${cost}\n{distance}m";
+                            GUI.Label(new Rect(BoundingVector.x - 50f, (float)Screen.height - BoundingVector.y, 100f, 50f), boxText);
+                        }
+                    }
+                }
+            }
+            catch (NullReferenceException)
+            {
+
             }
         }
     }

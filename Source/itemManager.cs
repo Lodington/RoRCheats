@@ -9,19 +9,37 @@ namespace RoRCheats
 {
     public class itemManager : MonoBehaviour
     {
-        public static void spawnItems(GUIStyle buttonStyle, string buttonName)
+        public static void GiveItems(GUIStyle buttonStyle, string buttonName)
         {
             int buttonPlacement = 1;
-            for (int i = (int)RoR2.ItemIndex.Syringe; i < (int)RoR2.ItemIndex.Count; i++)
+            for (int i = (int)ItemIndex.Syringe; i < (int)ItemIndex.Count; i++)
             {
-                var def = RoR2.ItemCatalog.GetItemDef((RoR2.ItemIndex)i);
-                if (GUI.Button(btn.BtnRect(buttonPlacement, buttonName), RoR2.Language.GetString(def.nameToken),buttonStyle))
+                var def = ItemCatalog.GetItemDef((ItemIndex)i);
+                if (GUI.Button(btn.BtnRect(buttonPlacement, false, buttonName), Language.GetString(def.nameToken),buttonStyle))
                 {
-                    var localUser = RoR2.LocalUserManager.GetFirstLocalUser();
+                    var localUser = LocalUserManager.GetFirstLocalUser();
                     if (localUser.cachedMasterController && localUser.cachedMasterController.master)
                     {
                         var body = localUser.cachedMasterController.master.GetBody();
-                        RoR2.PickupDropletController.CreatePickupDroplet(new RoR2.PickupIndex((RoR2.ItemIndex)i), body.transform.position + Vector3.up * 1.5f, Vector3.up * 20f + body.transform.forward * 2f);
+                        PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((ItemIndex)i), body.transform.position + (Vector3.up * 1.5f), Vector3.up * 20f + body.transform.forward * 2f);
+                    }
+                }
+                buttonPlacement++;
+            }
+        }
+        public static void GiveEquipment(GUIStyle buttonStyle, string buttonName)
+        {
+            int buttonPlacement = 1;
+            for (int i = (int)EquipmentIndex.CommandMissile; i < (int)EquipmentIndex.Count; i++)
+            {
+                var def = EquipmentCatalog.GetEquipmentDef((EquipmentIndex)i);
+                if (GUI.Button(btn.BtnRect(buttonPlacement, false, buttonName), Language.GetString(def.nameToken), buttonStyle))
+                {
+                    var localUser = LocalUserManager.GetFirstLocalUser();
+                    if (localUser.cachedMasterController && localUser.cachedMasterController.master)
+                    {
+                        var body = localUser.cachedMasterController.master.GetBody();
+                        PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((EquipmentIndex)i), body.transform.position + Vector3.up * 1.5f, Vector3.up * 20f + body.transform.forward * 2f);
                     }
                 }
                 buttonPlacement++;
@@ -30,7 +48,7 @@ namespace RoRCheats
 
         public static void RollItems(string amount, Inventory LocalPlayerInv)
         {
-            Debug.Log("RoRCheats : Rolling " + amount + " items");
+            Debug.Log(Main.log+"Rolling " + amount + " items");
             try
             {
                 int num;
@@ -57,10 +75,10 @@ namespace RoRCheats
         {
             if (LocalPlayerInv)
             {
-                for (ItemIndex itemIndex = ItemIndex.Syringe; itemIndex < (ItemIndex)78; itemIndex++)
+                for (ItemIndex itemIndex = ItemIndex.Syringe; itemIndex < (ItemIndex)99; itemIndex++)
                 {
                     //plantonhit kills you when you pick it up
-                    if (itemIndex == ItemIndex.PlantOnHit || itemIndex == ItemIndex.HealthDecay || itemIndex == ItemIndex.BurnNearby || itemIndex == ItemIndex.CrippleWardOnLevel || itemIndex == ItemIndex.Ghost || itemIndex == ItemIndex.ExtraLifeConsumed)
+                    if (itemIndex == ItemIndex.PlantOnHit || itemIndex == ItemIndex.HealthDecay || itemIndex == ItemIndex.TonicAffliction || itemIndex == ItemIndex.BurnNearby || itemIndex == ItemIndex.CrippleWardOnLevel || itemIndex == ItemIndex.Ghost || itemIndex == ItemIndex.ExtraLifeConsumed)
                         continue;
                     //ResetItem sets quantity to 1, RemoveItem removes the last one.
                     LocalPlayerInv.GiveItem(itemIndex, Main.allItemsQuantity);

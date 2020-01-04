@@ -1,15 +1,30 @@
 ﻿using RoR2;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace RoRCheats
 {
-    class TeleporterHandler
+    internal class TeleporterHandler
     {
+        public static void InstaTeleporter()
+        {
+            if (TeleporterInteraction.instance)
+            {
+                TeleporterInteraction.instance.remainingChargeTimer = 0;
+                Debug.Log("RoRCheats : Skipping Stage");
+            }
+        }
+
+        public static void skipStage()
+        {
+            Run.instance.AdvanceStage(Run.instance.nextStageScene);
+            Debug.Log("RoRCheats : Skipped Stage");
+        }
+
+        public static void addMountain()
+        {
+            TeleporterInteraction.instance.AddShrineStack();
+        }
+
         public static void SpawnPortals(string portal)
         {
             if (TeleporterInteraction.instance)
@@ -41,21 +56,6 @@ namespace RoRCheats
                     Debug.LogError("Selection was " + portal + " please contact mod developer.");
                 }
             }
-        }
-
-        public static void skipStage()
-        {
-            Run.instance.AdvanceStage(Run.instance.nextStageScene);
-            Debug.Log("RoRCheats : Skipped Stage");
-        }
-
-        public static void InstaTeleporter()
-        {
-            if (TeleporterInteraction.instance)
-            {
-                TeleporterInteraction.instance.remainingChargeTimer = 0;
-            }
-
         }
     }
 }

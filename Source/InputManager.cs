@@ -1,35 +1,29 @@
-﻿using BepInEx.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace RoRCheats
 {
-
     public class InputManager
     {
-
-        static Dictionary<string, KeyCode> keyMapping;
-        static KeyCode[] CustomKeys = new KeyCode[4];
-
-        static string[] keyMaps = new string[4]
-        {
-            "OpenMenu",
-            "GiveMoney",
-            "OpenTeleMenu",
-            "ToggleNoClip"
-        };
-        static KeyCode[] defaults = new KeyCode[4]
+        private static KeyCode[] CustomKeys = new KeyCode[4];
+        private static KeyCode[] defaults = new KeyCode[4]
         {
             KeyCode.Insert, //toggle Main menu
             KeyCode.V, //Give money
             KeyCode.B, //open tele menu
             KeyCode.C //toggle no clip
         };
-        
+
+        private static Dictionary<string, KeyCode> keyMapping;
+        private static string[] keyMaps = new string[4]
+        {
+            "OpenMenu",
+            "GiveMoney",
+            "OpenTeleMenu",
+            "ToggleNoClip"
+        };
         static InputManager()
         {
             CustomKeys[0] = sanitzeKeybinds(Main.OpenMenuKey.Value);
@@ -39,48 +33,60 @@ namespace RoRCheats
             InitializeDictionary(GetKeybinds(defaults, CustomKeys));
         }
 
+        public static bool GetKeyDown(string keyMap)
+        {
+            return Input.GetKeyDown(keyMapping[keyMap]);
+        }
+
         public static KeyCode sanitzeKeybinds(String Keybind)
         {
-            bool isValid = Enum.TryParse<KeyCode>(Keybind, true ,out KeyCode key);
+            bool isValid = Enum.TryParse<KeyCode>(Keybind, true, out KeyCode key);
             if (isValid)
             {
-                Debug.LogWarning("RoRCheats: Registered Key : " + key);
+                Debug.LogWarning(Main.log+"Registered Key : " + key);
                 return key;
             }
             else if (!isValid)
             {
-                Debug.LogError("RoRCheats: Invalid Keybind in Config File");
+                Debug.LogError(Main.log+"Invalid Keybind in Config File");
                 return key;
             }
             return key;
-
         }
+
+        public static void SetKeyMap(string keyMap, KeyCode key)
+        {
+            if (!keyMapping.ContainsKey(keyMap))
+                Debug.LogError(Main.log+"Invalid KeyMap in SetKeyMap: " + keyMap);
+            keyMapping[keyMap] = key;
+        }
+
         private static KeyCode[] GetKeybinds(KeyCode[] DefaultKeybinds, KeyCode[] CustomKeybinds)
         {
-
             bool isEqual = Enumerable.SequenceEqual(DefaultKeybinds, CustomKeybinds);
 
-            if(!isEqual)
+            if (!isEqual)
             {
-                for(int i = 0; i < CustomKeybinds.Length; i++)
+                for (int i = 0; i < CustomKeybinds.Length; i++)
                 {
                     if (CustomKeybinds[i] == KeyCode.None)
                     {
-                        Debug.Log("RoRCheats: Loaded Default Keybinds");
+                        Debug.Log(Main.log + "Loaded Default Keybinds");
                         return DefaultKeybinds;
                     }
                 }
-                Debug.Log("RoRCheats: Loaded Keybinds From Config File");
+                Debug.Log(Main.log + "Loaded Keybinds From Config File");
                 return CustomKeybinds;
-            } 
-            else if(isEqual)
+            }
+            else if (isEqual)
             {
-                Debug.Log("RoRCheats: Loaded Default Keybinds");
+                Debug.Log(Main.log + "Loaded Default Keybinds");
                 return DefaultKeybinds;
             }
-            Debug.LogError("RoRCheats: Something Went Wrong...Loading Default Keybinds");
+            Debug.LogError(Main.log + "Something Went Wrong...Loading Default Keybinds");
             return DefaultKeybinds;
         }
+
         private static void InitializeDictionary(KeyCode[] Keybinds)
         {
             keyMapping = new Dictionary<string, KeyCode>();
@@ -89,19 +95,5 @@ namespace RoRCheats
                 keyMapping.Add(keyMaps[i], Keybinds[i]);
             }
         }
-
-        public static void SetKeyMap(string keyMap, KeyCode key)
-        {
-            if (!keyMapping.ContainsKey(keyMap))
-                Debug.LogError("RoRCheats: Invalid KeyMap in SetKeyMap: " + keyMap);
-            keyMapping[keyMap] = key;
-        }
-
-        public static bool GetKeyDown(string keyMap)
-        {
-            return Input.GetKeyDown(keyMapping[keyMap]);
-        }
-            
     }
 }
-

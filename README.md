@@ -1,3 +1,8 @@
+# DEPRECATED
+
+No longer works with anniversary update 
+
+
 # Lod's Cheat Codes
 
 This Cheat menu is for having some fun in game by breaking the game or testing out items etc...!
